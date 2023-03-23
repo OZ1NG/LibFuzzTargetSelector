@@ -16,8 +16,6 @@ private:
     std::map<std::string, std::uint64_t> global_func_symbols;
     std::map<std::string, std::uint64_t> local_func_symbols;
     std::map<std::string, std::string> func_asm_opcode;         // <func_sym>:<opcode_byte>
-    // std::map<std::string, std::vector<std::string>> func_asm_opcode;         // <func_sym>:<opcode_byte>
-    
     std::map<std::string, AddressRange> func_asm_addr_range;    // <func_sym>:[<asm_start>, <asm_end>]
     
     std::string hex2bytes(std::string& hexstring);

@@ -171,20 +171,24 @@ void FuzzTargetSelector::showAddrRagne() {
 
 void FuzzTargetSelector::showOpcode() {
     for (auto iter : func_asm_opcode) {
-		std::cout << iter.first << ":\n" << iter.second << std::endl;
+		std::cout << "<" << iter.first << ">:\n" << iter.second << std::endl;
 	}
 }
 
 int FuzzTargetSelector::memRefchk() {
     csh handle;
+
+    if (cs_open(CS_ARCH_X86, CS_MODE_64, &handle) != CS_ERR_OK) // arch : x86-64, mode : x64 인 환경을 뜻함
+    	return 0;
+
     for (auto iter : func_asm_opcode) {
     	cs_insn *insn;
     	size_t count;
 
-    	if (cs_open(CS_ARCH_X86, CS_MODE_64, &handle) != CS_ERR_OK) // arch : x86-64, mode : x64 인 환경을 뜻함
-    		return 0;
+        if (func_asm_addr_range.find(iter.first) == func_asm_addr_range.end())
+            continue;
 
-    	count = cs_disasm(handle, (const uint8_t *)iter.second.c_str(), iter.second.size(), 0x1000, 0, &insn);
+        count = cs_disasm(handle, (const uint8_t *)iter.second.c_str(), iter.second.size(), func_asm_addr_range[iter.first].start, 0, &insn);
     	std::cout << "<" << iter.first << ">" << std::endl;
         if (count > 0) {
     		size_t j;
@@ -195,11 +199,12 @@ int FuzzTargetSelector::memRefchk() {
     					insn[j].op_str
                 );
     		}
+            std::cout << std::endl;
     		cs_free(insn, count);
     	} else
     		printf("ERROR: Failed to disassemble given code!\n");
-
-    	cs_close(&handle);
     }
+    cs_close(&handle);
+        
     return 1;
 }
