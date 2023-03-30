@@ -12,14 +12,18 @@ int exec(std::string cmd, std::vector<std::string> &buf) {
     }
 
     char buffer[0x100] = {0, };
-
+    std::string buf_string = "";
     // 결과를 한 줄씩 읽어들이면서 벡터에 저장
     while (fgets(buffer, sizeof(buffer), fp) != NULL)
     {
         if (buffer[strlen(buffer)-1] == '\n') {
             buffer[strlen(buffer)-1] = '\0';
+            buf_string += std::string(buffer);
+            buf.push_back(buf_string);
+            buf_string.clear();
+        } else {
+            buf_string += std::string(buffer);
         }
-        buf.push_back(std::string(buffer));
     }
 
     pclose(fp);
@@ -81,14 +85,14 @@ void FuzzTargetSelector::getSymbols() {
     // Read local func symbols info
     std::vector<std::string> tmp_lv; // tmp local func symbols vector
     
-    res = exec("nm --defined-only " + this->target_path + " | grep \" t \"", tmp_gv);
+    res = exec("nm --defined-only " + this->target_path + " | grep \" t \"", tmp_lv);
     if (!res) {
         std::cout << "[!] local function symbol parse error!" << std::endl;
         exit(1);
     }
 
     std::vector<std::string> filter = {"__do_global_dtors_aux", "_fini", "_init"};
-    for (std::vector<std::string>::iterator it = tmp_gv.begin(); it != tmp_gv.end(); ++it) {
+    for (std::vector<std::string>::iterator it = tmp_lv.begin(); it != tmp_lv.end(); ++it) {
         bool flag = true;
         for (int i = 0; i < filter.size(); i ++) {
             if (!it->substr(19).compare(filter[i])) { 
@@ -590,9 +594,9 @@ void FuzzTargetSelector::showResult() {
     symbol_size += 5;
 
     std::cout << "[showResult]" << std::endl;
-    std::cout << "\t" << std::setw(symbol_size) << std::left << "[GLOBAL FUNC SYMBOL]" << "[TOTAL MEM REF COUNT]" << std::endl;
+    std::cout << "\t" << std::setw(symbol_size) << std::left << "[GLOBAL FUNC SYMBOL]" << std::setw(std::string("[TOTAL MEM REF COUNT]").size()) << std::right << "[TOTAL MEM REF COUNT]" << std::endl;
     for (auto iter : result_func_sym) {
-        std::cout << "\t" << std::setw(symbol_size) << std::left << iter << total_mem_ref_count[iter] << std::endl;
+        std::cout << "\t" << std::setw(symbol_size) << std::left << iter << std::setw(std::string("[TOTAL MEM REF COUNT]").size()) << std::right << total_mem_ref_count[iter] << std::endl;
     }
     std::cout << std::endl;
 }
