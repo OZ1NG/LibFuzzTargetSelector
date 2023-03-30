@@ -24,7 +24,7 @@ int main(int argc, char **argv) {
     fts.getResult(result);
     std::cout << "[+] Result Check" << std::endl;
     for (auto iter : result) {
-        std::cout << iter << std::endl;
+        std::cout << fts.demangle(iter) << std::endl;
     }
 
     return 0;

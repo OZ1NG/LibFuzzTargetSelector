@@ -31,10 +31,6 @@ int exec(std::string cmd, std::vector<std::string> &buf) {
     return 1; // Success!
 }
 
-bool descending(std::uint64_t a, std::uint64_t b) {
-    return a > b;
-}
-
 FuzzTargetSelector::FuzzTargetSelector(std::string path) {
     this->target_path = path;
     this->plt_section = {0, 0, 0};
@@ -537,7 +533,6 @@ void FuzzTargetSelector::getTotalMemRefCount() {
     }
 
     // 내림차순 정렬
-    // std::sort(total_mem_ref_count.begin(), total_mem_ref_count.end(), descending);
     std::vector<std::pair<std::string, std::uint64_t>> sorted_map(total_mem_ref_count.begin(), total_mem_ref_count.end());
     std::sort(sorted_map.begin(), sorted_map.end(), [](const auto& lhs, const auto& rhs){
         return lhs.second > rhs.second; // second 값을 기준으로 내림차순 정렬
@@ -587,8 +582,8 @@ void FuzzTargetSelector::showResult() {
     // 가장 긴 이름을 가진 심볼의 길이
     std::uint64_t symbol_size = std::string("[GLOBAL FUNC SYMBOL]").size();
     for (auto iter : result_func_sym) {
-        if (symbol_size < iter.size()) {
-            symbol_size = iter.size();
+        if (symbol_size < demangle(iter).size()) {
+            symbol_size = demangle(iter).size();
         }
     }
     symbol_size += 5;
@@ -596,7 +591,7 @@ void FuzzTargetSelector::showResult() {
     std::cout << "[showResult]" << std::endl;
     std::cout << "\t" << std::setw(symbol_size) << std::left << "[GLOBAL FUNC SYMBOL]" << std::setw(std::string("[TOTAL MEM REF COUNT]").size()) << std::right << "[TOTAL MEM REF COUNT]" << std::endl;
     for (auto iter : result_func_sym) {
-        std::cout << "\t" << std::setw(symbol_size) << std::left << iter << std::setw(std::string("[TOTAL MEM REF COUNT]").size()) << std::right << total_mem_ref_count[iter] << std::endl;
+        std::cout << "\t" << std::setw(symbol_size) << std::left << demangle(iter) << std::setw(std::string("[TOTAL MEM REF COUNT]").size()) << std::right << total_mem_ref_count[iter] << std::endl;
     }
     std::cout << std::endl;
 }
@@ -611,6 +606,15 @@ bool FuzzTargetSelector::getResult(std::vector<std::string> &result_vec) {
     result_vec = result_func_sym;
 
     return true;
+}
+
+std::string FuzzTargetSelector::demangle(std::string mangled_sym) {
+    int status;
+    std::unique_ptr<char, decltype(std::free)*> result {
+        abi::__cxa_demangle(mangled_sym.c_str(), nullptr, nullptr, &status),
+        std::free
+    };
+    return (status == 0) ? result.get() : mangled_sym;
 }
 
 // TODO

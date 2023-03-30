@@ -6,6 +6,7 @@
 #include <cstdio>
 #include <cstdlib>
 #include <cstring>
+#include <cxxabi.h>
 
 // #define DEBUG
 
@@ -67,19 +68,21 @@ private:
     // TODO: 체크 가능한 대상 라이브러리인지 확인하는 함수 (file 명령어 사용)
     bool chkLibInfo();
 
-    // TODO: C++로 개발된 함수의 경우 mangling된 심볼을 demangling 해주는 함수 (결과 출력 때 사용)
-
+    
 public:
     FuzzTargetSelector(std::string path);
     void setTargetPath(std::string path);
 
-    // public
+    // show
     void showAddrRagne();
     void showOpcode();   
     void showFuncMemRefCount();
     void showOneDepthTree();
     void showTotalMemRefCount();
     void showResult();
+
+    // TODO: C++로 개발된 함수의 경우 mangling된 심볼을 demangling 해주는 함수 (결과 출력 때 사용)
+    std::string demangle(std::string mangled_sym);
 
     bool getResult(std::vector<std::string> &result_vec);
 };
