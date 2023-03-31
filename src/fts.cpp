@@ -243,11 +243,8 @@ bool FuzzTargetSelector::memRefCountChk(const char * mnemonic, const char * op_s
         // if (strstr(mnemonic, "nop") != 0) 
         //     return false; 
 
-        // rip 레지스터만 사용되는지 체크 // rsp, rbp 레지스터는 일단 보류
-        std::regex rip_reg("rip");
-        // 아래 정규식은 위 정규식과 하나로 묶을 수 있음 // 보류 코드
-        // std::regex rsp_reg("rsp"); 
-        // std::regex rbp_reg("rbp");
+        // rip, rsp, rbp 레지스터 검출 정규식
+        std::regex non_user_effect_regi_reg("[r][isb][p]");
         
         #ifdef X64
         std::regex regi_reg("[r][a-z0-9][a-z0-9]"); // only x64
@@ -259,8 +256,8 @@ bool FuzzTargetSelector::memRefCountChk(const char * mnemonic, const char * op_s
         std::string mem_ref_string = mem_ref_match.str();
         while (std::regex_search(mem_ref_string, regi_matches, regi_reg)) {
             // std::cout << "[memRefCountChk2] regi_matches: " << regi_matches.str() << std::endl; // test
-            if (!std::regex_match(regi_matches.str(), rip_reg)) { 
-                rip_flag = true; // rip가 아닌 다른 레지스터를 사용하는 것을 발견한 경우
+            if (!std::regex_match(regi_matches.str(), non_user_effect_regi_reg)) { 
+                rip_flag = true; // rip, rsp, rbp가 아닌 다른 레지스터를 사용하는 것을 발견한 경우
                 break;
             }
             mem_ref_string = regi_matches.suffix();
@@ -522,14 +519,32 @@ bool FuzzTargetSelector::getPltInfo() {
     return true;
 }
 
-// 전역 함수에 대해서만 진행
+std::uint64_t FuzzTargetSelector::calcTotalMemRefCount(std::string parents_func_sym, std::vector<std::string> callstack) {
+    // A-B-C-A 와 같은 호출에 의한 무한 루프 방지
+    if (std::count(callstack.begin(), callstack.end(), parents_func_sym)) {
+        return 0;
+    }
+    
+    // 이미 카운팅이 끝난 함수면 바로 리턴
+    if (total_mem_ref_count.count(parents_func_sym)) {
+        return total_mem_ref_count[parents_func_sym];
+    }
+
+    callstack.push_back(parents_func_sym);
+    // 재귀로 tree 탐색
+    total_mem_ref_count[parents_func_sym] = mem_ref_count[parents_func_sym]; // std::map 특징상 키값이 없으면 값을 0으로 자동 등록 후 리턴
+    for (auto sym : onedepth_tree[parents_func_sym]) {
+        total_mem_ref_count[parents_func_sym] += calcTotalMemRefCount(sym, callstack);
+    }
+    return total_mem_ref_count[parents_func_sym];
+}
+
+// 전역 함수를 루트 노드로 사용하여 진행
 void FuzzTargetSelector::getTotalMemRefCount() {
     // 총 mem ref count 저장
+    std::vector<std::string> callstack;
     for (auto iter : global_func_symbols) {
-        total_mem_ref_count[iter.first] = mem_ref_count[iter.first]; // mem_ref_count에 없는 심볼은 자동으로 0 리턴
-        for (auto it : onedepth_tree[iter.first]) {
-            total_mem_ref_count[iter.first] += mem_ref_count[it]; 
-        }
+        calcTotalMemRefCount(iter.first, callstack);
     }
 
     // 내림차순 정렬
@@ -542,13 +557,6 @@ void FuzzTargetSelector::getTotalMemRefCount() {
     for(const auto& sym_count : sorted_map) {
         result_func_sym.push_back(sym_count.first);
     }
-
-    // 출력해보기
-    std::cout << "[TEST]" << std::endl;
-    for(const auto& sym : result_func_sym) {
-        std::cout << sym << std::endl;
-    }
-    std::cout << std::endl;
 }
 
 void FuzzTargetSelector::showFuncMemRefCount() {

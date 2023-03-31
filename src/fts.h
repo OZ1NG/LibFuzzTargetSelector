@@ -11,7 +11,9 @@
 // #define DEBUG
 
 #define X64
-// #define X86
+#ifndef X64
+#define X86
+#endif
 
 typedef struct AddressRange {
     std::uint64_t start;
@@ -22,8 +24,6 @@ typedef struct AddressRange {
 class FuzzTargetSelector {
 private:
     std::string target_path;
-    // std::vector<std::string> global_func_symbols;
-    // std::vector<std::string> local_func_symbols;
     std::map<std::string, std::uint64_t> global_func_symbols;       // <func_sym>:<func_addr>
     std::map<std::string, std::uint64_t> local_func_symbols;        // <func_sym>:<func_addr>
     std::map<std::string, std::string> func_asm_opcode;             // <func_sym>:<opcode_byte>
@@ -68,7 +68,8 @@ private:
     // TODO: 체크 가능한 대상 라이브러리인지 확인하는 함수 (file 명령어 사용)
     bool chkLibInfo();
 
-    
+    // 재귀로 피호출 함수 포함 mem ref count 계산하는 함수
+    std::uint64_t calcTotalMemRefCount(std::string parents_func_sym, std::vector<std::string> callstack);
 public:
     FuzzTargetSelector(std::string path);
     void setTargetPath(std::string path);
