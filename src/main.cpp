@@ -2,7 +2,10 @@
 #include "fts.h"
 
 int main(int argc, char **argv) {
-
+    if (argc < 2) {
+        std::cout << "[!] Usage: ./fts <library path>" << std::endl;
+        exit(0);
+    }
     FuzzTargetSelector fts = FuzzTargetSelector(std::string(argv[1]));
 
     // fts.getSymbols();
