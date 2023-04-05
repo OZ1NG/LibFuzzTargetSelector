@@ -298,8 +298,14 @@ bool FuzzTargetSelector::callTreeChk(const char * mnemonic, const char * op_str,
 
     // call mnemonic check
     if (std::regex_match(mnemonic_string, call_reg)) {
-        // std::cout << "\tfind call!" << std::endl; // test
-        std::uint64_t addr = std::stoull(std::string(op_str), nullptr, 16);
+        // std::cout << "\tfind call!:" << std::string(op_str) << std::endl; // test
+        std::uint64_t addr;
+        try{
+            addr = std::stoull(std::string(op_str), nullptr, 16);
+        }
+        catch (std::invalid_argument &e) { // regi_reg 정규식 매칭에 알수 없는 이유로 실패한 경우를 대비
+            return false;
+        }
 
         // plt 영역의 함수인지 체크
         if (chkRange(addr, plt_section)) {
@@ -320,9 +326,14 @@ bool FuzzTargetSelector::callTreeChk(const char * mnemonic, const char * op_str,
 
     // jmp 계열 mnemonic check
     else if (std::regex_match(mnemonic_string, jmp_reg)) {
-        // std::cout << "\tfind jxx!" << std::endl; // test
-        std::uint64_t addr = std::stoull(std::string(op_str), nullptr, 16);
-        
+        // std::cout << "\tfind jxx!" << std::string(op_str) << std::endl; // test
+        std::uint64_t addr;
+        try{
+            addr = std::stoull(std::string(op_str), nullptr, 16);
+        }
+        catch (std::invalid_argument &e) { // regi_reg 정규식 매칭에 알수 없는 이유로 실패한 경우를 대비
+            return false;
+        }
         // 함수 외부로 점프 하는지 체크
         if (!chkRange(addr, func_range)) {
             // plt 영역의 함수인지 체크
@@ -406,6 +417,7 @@ void FuzzTargetSelector::memRefchk() {
                 // tree 생성
                 if (callTreeChk(insn[j].mnemonic, insn[j].op_str, func_asm_addr_range[iter.first])) {
                     // std::cout << "[in callTreeChk]" << std::endl; // test
+                    // std::cout << ":" << std::string(insn[j].op_str) << std::endl; // test
                     std::string func_sym;
                     if (getRange2Sym(std::stoull(std::string(insn[j].op_str), nullptr, 16), func_sym)) {
                         try {
@@ -436,6 +448,7 @@ AddressRange FuzzTargetSelector::getReadelfRange(std::vector<std::string> vec) {
     std::regex addr_reg("\\s+PROGBITS\\s+([\\dabcdefABCDEF]{16})\\s");
     std::smatch match;
     if (std::regex_search(vec.at(0), match, addr_reg)) {
+        // std::cout << "[getReadelfRange1]:" << std::string(match.str(1)) << std::endl; // test
         address = std::stoull(match.str(1), nullptr, 16);
         #ifdef DEBUG
         std::cout << "[getReadelfRange] Address: " << std::hex << address << std::endl; // test
@@ -447,6 +460,7 @@ AddressRange FuzzTargetSelector::getReadelfRange(std::vector<std::string> vec) {
 
     std::regex offset_reg("\\b([\\dabcdefABCDEF]{16})\\b");
     if (std::regex_search(vec.at(1), match, offset_reg)) {
+        // std::cout << "[getReadelfRange1]:" << std::string(match.str(1)) << std::endl; // test
         offset = std::stoull(match.str(1), nullptr, 16);
         #ifdef DEBUG
         std::cout << "[getReadelfRange] Offset: " << std::hex << offset << std::endl; // test
