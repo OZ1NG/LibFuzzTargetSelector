@@ -65,11 +65,14 @@ private:
     // 함수별 최종 카운트 결정 + 내림차순 정렬
     void getTotalMemRefCount();
 
-    // TODO: 체크 가능한 대상 라이브러리인지 확인하는 함수 (file 명령어 사용)
-    bool chkLibInfo();
-
     // 재귀로 피호출 함수 포함 mem ref count 계산하는 함수
     std::uint64_t calcTotalMemRefCount(std::string parents_func_sym, std::vector<std::string> callstack);
+    
+    // TODO: 파싱 데이터 저장
+    void saveParseData();
+
+    // 체크 가능한 대상 라이브러리인지 확인하는 함수 (file 명령어 사용)
+    bool chkValidLib();
 public:
     FuzzTargetSelector(std::string path);
     void setTargetPath(std::string path);
@@ -82,7 +85,7 @@ public:
     void showTotalMemRefCount();
     void showResult();
 
-    // TODO: C++로 개발된 함수의 경우 mangling된 심볼을 demangling 해주는 함수 (결과 출력 때 사용)
+    // C++로 개발된 함수의 경우 mangling된 심볼을 demangling 해주는 함수 (결과 출력 때 사용)
     std::string demangle(std::string mangled_sym);
 
     bool getResult(std::vector<std::string> &result_vec);

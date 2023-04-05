@@ -4,7 +4,7 @@
 #include <stdio.h>
 #include <iomanip>
 
-int exec(std::string cmd, std::vector<std::string> &buf) {
+bool exec(std::string cmd, std::vector<std::string> &buf) {
     FILE * fp = popen(cmd.c_str(), "r");
 
     if (!fp) {
@@ -36,6 +36,10 @@ FuzzTargetSelector::FuzzTargetSelector(std::string path) {
     this->plt_section = {0, 0, 0};
 
     // Start Parsing
+    if (!chkValidLib()) {
+        exit(1);
+    }
+
     std::cout << "[+] Get .plt.got, .plt.sec Info..." << std::endl;
     getPltInfo();
     if (plt_section.error_state) {
@@ -625,7 +629,23 @@ std::string FuzzTargetSelector::demangle(std::string mangled_sym) {
     return (status == 0) ? result.get() : mangled_sym;
 }
 
-// TODO
-bool FuzzTargetSelector::chkLibInfo() {
+bool FuzzTargetSelector::chkValidLib() {
+    std::vector<std::string> v;
+    int res = exec("file " + target_path, v);
+    if (!res) {
+        return false;
+    }
+
+    if (std::strstr(v.at(0).c_str(), "No such file or directory") != 0) {
+        std::cout << "[!] Wrong Path!" << std::endl;
+        return false;
+    }
+
+    if (std::strstr(v.at(0).c_str(), "not stripped") == 0) {
+        std::cout << "[!] Stripped File..." << std::endl;
+        return false;
+    }
+
     return true;
 }
+
