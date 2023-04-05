@@ -9,7 +9,7 @@
 
 ## IDEA
 - 보통 프로그램에서 주로 나오는 취약점은 Memory Corruption에 대한 것들입니다.
-- 그래서 단순하게 다음과 같이 생각하여 만들게 되었습니다.
+- 그래서 단순하게 다음과 같은 생각으로 만들게 되었습니다.
   - Memory Corruption이 발생한다 
     => Memory Reference가 존재했다 
     => Memory Reference 횟수가 많으면 Memory Corruption이 발생할 가능성이 높을 것이다
