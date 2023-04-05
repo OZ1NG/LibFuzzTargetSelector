@@ -8,7 +8,7 @@ bool exec(std::string cmd, std::vector<std::string> &buf) {
     FILE * fp = popen(cmd.c_str(), "r");
 
     if (!fp) {
-        return 0; // Error!
+        return false; // Error!
     }
 
     char buffer[0x100] = {0, };
@@ -27,8 +27,12 @@ bool exec(std::string cmd, std::vector<std::string> &buf) {
     }
 
     pclose(fp);
-    
-    return 1; // Success!
+
+    if (buf.size() == 0) {
+        return false; // non result
+    }
+
+    return true; // Success!
 }
 
 FuzzTargetSelector::FuzzTargetSelector(std::string path) {
@@ -65,44 +69,55 @@ FuzzTargetSelector::FuzzTargetSelector(std::string path) {
 }
 
 void FuzzTargetSelector::setTargetPath(std::string path) {
-    this->target_path = path;
+    target_path = path;
 }
 
 void FuzzTargetSelector::getSymbols() {
+    std::vector<std::string> filter = {"__do_global_dtors_aux", "_fini", "_init"};
+
     // Read global func symbols info
     std::vector<std::string> tmp_gv; // tmp global func symbols vector
     
-    int res = exec("nm --defined-only " + this->target_path + " | grep \" T \"", tmp_gv);
+    int res = exec("nm --defined-only " + target_path + " | grep \" T \"", tmp_gv);
     if (!res) {
         std::cout << "[!] global function symbol parse error!" << std::endl;
         exit(1);
     }
 
-    for (std::vector<std::string>::iterator it = tmp_gv.begin(); it != tmp_gv.end(); ++it) {
-        this->global_func_symbols.insert({it->substr(19), stoi(it->substr(0,16), nullptr, 16)});
-    }
-
-    // Read local func symbols info
-    std::vector<std::string> tmp_lv; // tmp local func symbols vector
-    
-    res = exec("nm --defined-only " + this->target_path + " | grep \" t \"", tmp_lv);
-    if (!res) {
-        std::cout << "[!] local function symbol parse error!" << std::endl;
-        exit(1);
-    }
-
-    std::vector<std::string> filter = {"__do_global_dtors_aux", "_fini", "_init"};
-    for (std::vector<std::string>::iterator it = tmp_lv.begin(); it != tmp_lv.end(); ++it) {
+    // ELF 파일의 경우 필터의 함수가 Global Function으로 존재하기 때문에 해당 코드를 추가
+    for (auto it : tmp_gv) {
         bool flag = true;
-        for (int i = 0; i < filter.size(); i ++) {
-            if (!it->substr(19).compare(filter[i])) { 
+        for (int i = 0; i < filter.size(); i++) {
+            if (!it.substr(19).compare(filter[i])) { 
                 flag = false;   // 필터에 걸린 것
                 break;
             }
         }
         
         if (flag)
-            this->local_func_symbols.insert({it->substr(19), stoi(it->substr(0,16), nullptr, 16)});
+            global_func_symbols.insert({it.substr(19), stoi(it.substr(0,16), nullptr, 16)});
+    }
+
+    // Read local func symbols info
+    std::vector<std::string> tmp_lv; // tmp local func symbols vector
+    
+    res = exec("nm --defined-only " + target_path + " | grep \" t \"", tmp_lv);
+    if (!res) {
+        std::cout << "[!] local function symbol parse error!" << std::endl;
+        exit(1);
+    }
+
+    for (auto it : tmp_lv) {
+        bool flag = true;
+        for (int i = 0; i < filter.size(); i++) {
+            if (!it.substr(19).compare(filter[i])) { 
+                flag = false;   // 필터에 걸린 것
+                break;
+            }
+        }
+        
+        if (flag)
+            local_func_symbols.insert({it.substr(19), stoi(it.substr(0,16), nullptr, 16)});
     }
 }
 
@@ -118,12 +133,15 @@ void FuzzTargetSelector::getAsm() {
     std::regex addr_reg("\\s+[0-9a-f]+:");
 
     for (int i = 0; i < 2; i ++) {
+        if (funcsymbols[i]->empty()) {
+            continue;
+        }
         for (auto iter : *funcsymbols[i]) {
 	    	// std::cout << iter.first << " " << iter.second << std::endl; // test
-
-            int res = exec("objdump -d -M intel " + this->target_path + " | grep -Pzo \"(?s)<" + iter.first + ">:.*?\\n\\n\"", tmp_v);
+        
+            int res = exec("objdump -d -M intel " + target_path + " | grep -Pzo \"(?s)<" + iter.first + ">:.*?\\n\\n\"", tmp_v);
             if (!res) {
-                std::cout << "error!" << std::endl;
+                std::cout << "[!] objdump error: symbol not found" << std::endl;
                 exit(1);
             }
 
