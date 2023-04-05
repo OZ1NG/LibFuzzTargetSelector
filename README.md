@@ -18,6 +18,7 @@
 - 지원 운영체제: Linux
 - 지원 타겟 라이브러리 환경: x86, x64
 - 대상 라이브러리는 not stripped 파일만 지원합니다. (심볼이 있어야함)
+- 꼭 라이브러리 뿐만 아니라 ELF 파일을 대상으로 해도 잘 작동합니다.
 
 ## Build
 ```bash
@@ -32,3 +33,7 @@ $ make libfts.so
 ```bash
 $ ./fts <library path>
 ```
+
+## Options
+
+- 추가 예정
