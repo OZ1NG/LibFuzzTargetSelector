@@ -167,7 +167,7 @@ void FuzzTargetSelector::getAsm() {
                 std::smatch addr_match;
                 if (std::regex_search(*it, addr_match, addr_reg)) {
                     addr.push_back(stoi(addr_match.str(), nullptr, 16));
-                    // std::cout << "addr: " << addr_match.str() << std::endl; // TEST
+                    // std::cout << "[DEBUG1] addr: " << addr_match.str() << std::endl; // TEST
                 }
             }
 
@@ -183,7 +183,15 @@ void FuzzTargetSelector::getAsm() {
             if (addr.size() > 2) {
                 addr.erase(addr.begin() + 1, addr.end() - 1);
             }
-            AddressRange addr_range = {addr.at(0), addr.at(1)};
+            
+            AddressRange addr_range;
+
+            if (addr.size() == 1) {
+                    //addr 원소의 개수가 1개인 경우엔 명령어 한줄로 이루어진 심볼인 경우인 것
+                    addr_range = {addr.at(0), addr.at(0)};
+            } else {
+                    addr_range = {addr.at(0), addr.at(1)};
+            }
 
             // func_asm_opcode map에 저장
             this->func_asm_opcode.insert({iter.first, opcode_byte});
@@ -445,7 +453,7 @@ void FuzzTargetSelector::memRefchk() {
                             onedepth_tree[iter.first].push_back(func_sym);
                         }
                     } else {
-                        std::cout << "\t[!memRefchk!] Error: Create Tree" << std::endl;
+                        // std::cout << "\t[DEBUG][!memRefchk!] Error: Create Tree," << std::hex << std::stoull(std::string(insn[j].op_str), nullptr, 16) << std::endl; // test
                     }
                 }
             }
