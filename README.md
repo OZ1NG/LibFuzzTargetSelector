@@ -19,6 +19,8 @@
 - 지원 타겟 라이브러리 환경: x86, x64
 - 대상 라이브러리는 not stripped 파일만 지원합니다. (심볼이 있어야함)
 - 꼭 라이브러리 뿐만 아니라 ELF 파일을 대상으로 해도 잘 작동합니다.
+- capstone 라이브러리가 설치되어 있어야 합니다.
+  - 설치방법 참고: [[C/C++] Capstone 라이브러리 (disassembly 라이브러리)](https://oz1ng019.tistory.com/126)
 
 ## Build
 ```bash
